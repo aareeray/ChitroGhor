@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  username      String      @unique
+  password_hash String
+  bio           String?
+  location      String?
+  profile_photo String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  logs          Log[]
+  watchlists    Watchlist[]
+  lists         List[]
+  followers     Follow[]    @relation("Followers")
+  following     Follow[]    @relation("Following")
+}
+
+model Film {
+  id            String      @id @default(uuid())
+  title_bn      String
+  title_en      String
+  type          String      // e.g., "FILM" or "SERIES"
+  director      String?
+  release_year  Int?
+  runtime       Int?        // in minutes
+  poster        String?
+  synopsis_bn   String?
+  synopsis_en   String?
+  ott_platforms String[]    // Array of platform names like ["Hoichoi", "ZEE5"]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  logs          Log[]
+  watchlists    Watchlist[]
+  listItems     ListItem[]
+  awards        Award[]
+}
+
+model Log {
+  id          String   @id @default(uuid())
+  user_id     String
+  film_id     String
+  rating      Float?   // 0.5 to 5.0
+  date        DateTime @default(now())
+  review      String?
+  spoiler     Boolean  @default(false)
+  dnf         Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  film        Film     @relation(fields: [film_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([film_id])
+}
+
+model Watchlist {
+  id          String   @id @default(uuid())
+  user_id     String
+  film_id     String
+  priority    Int      @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  film        Film     @relation(fields: [film_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, film_id])
+}
+
+model List {
+  id          String     @id @default(uuid())
+  user_id     String
+  name        String
+  description String?
+  isPublic    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user        User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  items       ListItem[]
+}
+
+model ListItem {
+  id          String   @id @default(uuid())
+  list_id     String
+  film_id     String
+  commentary  String?
+  rank        Int?
+  createdAt   DateTime @default(now())
+
+  list        List     @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  film        Film     @relation(fields: [film_id], references: [id], onDelete: Cascade)
+
+  @@unique([list_id, film_id])
+}
+
+model Follow {
+  follower_id  String
+  following_id String
+  createdAt    DateTime @default(now())
+
+  follower     User     @relation("Following", fields: [follower_id], references: [id], onDelete: Cascade)
+  following    User     @relation("Followers", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@id([follower_id, following_id])
+}
+
+model Award {
+  id          String   @id @default(uuid())
+  film_id     String
+  award_name  String
+  year        Int
+  category    String?
+  won         Boolean  @default(true)
+
+  film        Film     @relation(fields: [film_id], references: [id], onDelete: Cascade)
+}
